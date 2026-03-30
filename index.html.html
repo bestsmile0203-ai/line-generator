@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINE ステップ配信ジェネレーター</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+
+  :root {
+    --green: #06C755;
+    --green-dark: #04a044;
+    --green-light: #e8faf0;
+    --gray-bg: #f5f6f8;
+    --gray-border: #e0e3e8;
+    --gray-text: #6b7280;
+    --dark: #1a1f2e;
+    --white: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--gray-bg);
+    color: var(--dark);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--white);
+    border-bottom: 3px solid var(--green);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .logo {
+    width: 36px; height: 36px;
+    background: var(--green);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  header h1 {
+    font-size: 17px;
+    font-weight: 900;
+    color: var(--dark);
+    line-height: 1.2;
+  }
+
+  header h1 span {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gray-text);
+    margin-top: 1px;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 28px 16px 60px;
+  }
+
+  /* STEP TABS */
+  .step-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .step-tab {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 2px solid var(--gray-border);
+    background: var(--white);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gray-text);
+    cursor: pointer;
+    transition: all .2s;
+  }
+
+  .step-tab.active {
+    background: var(--green);
+    border-color: var(--green);
+    color: var(--white);
+  }
+
+  /* FORM CARD */
+  .card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    border: 1px solid var(--gray-border);
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--dark);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--green-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title .badge {
+    background: var(--green);
+    color: white;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+
+  .field {
+    margin-bottom: 18px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 6px;
+  }
+
+  label .required {
+    color: #ef4444;
+    margin-left: 4px;
+    font-size: 11px;
+  }
+
+  label .hint {
+    font-size: 11px;
+    color: var(--gray-text);
+    font-weight: 400;
+    margin-left: 6px;
+  }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--gray-border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--dark);
+    background: var(--white);
+    transition: border-color .2s;
+    outline: none;
+  }
+
+  input[type="text"]:focus,
+  textarea:focus,
+  select:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(6,199,85,0.12);
+  }
+
+  textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+
+  .symptoms-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .symptom-input {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .symptom-input span {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .symptom-input input {
+    flex: 1;
+  }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* GENERATE BUTTON */
+  .btn-generate {
+    width: 100%;
+    padding: 16px;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 900;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .btn-generate:hover {
+    background: var(--green-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(6,199,85,0.35);
+  }
+
+  .btn-generate:active { transform: translateY(0); }
+
+  /* OUTPUT */
+  .output-section { display: none; }
+  .output-section.visible { display: block; }
+
+  .output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .output-header h2 {
+    font-size: 17px;
+    font-weight: 900;
+  }
+
+  .msg-block {
+    background: var(--white);
+    border-radius: 14px;
+    border: 1px solid var(--gray-border);
+    overflow: hidden;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  .msg-header {
+    background: var(--green-light);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--gray-border);
+  }
+
+  .msg-header strong {
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--green-dark);
+  }
+
+  .btn-copy {
+    background: var(--green);
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .btn-copy:hover { background: var(--green-dark); }
+  .btn-copy.copied { background: #3b82f6; }
+
+  .msg-body {
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    color: var(--dark);
+    word-break: break-all;
+  }
+
+  .btn-copy-all {
+    background: var(--dark);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .btn-copy-all:hover { opacity: 0.85; }
+
+  .section-divider {
+    text-align: center;
+    font-size: 12px;
+    color: var(--gray-text);
+    margin: 6px 0 14px;
+    font-weight: 500;
+  }
+
+  .char-count {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-left: 8px;
+  }
+  .char-count.ok { background: var(--green-light); color: var(--green-dark); }
+  .char-count.over { background: #fee2e2; color: #dc2626; }
+
+  .msg-block.over-limit {
+    border: 2px solid #ef4444;
+  }
+
+  .rule-banner {
+    background: #fff8e1;
+    border: 1.5px solid #f59e0b;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 12px;
+    color: #78350f;
+    line-height: 1.8;
+  }
+  .rule-banner strong { font-size: 13px; display: block; margin-bottom: 6px; color: #92400e; }
+
+  @media (max-width: 560px) {
+    .symptoms-grid { grid-template-columns: 1fr; }
+    .row-2 { grid-template-columns: 1fr; }
+    .card { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">💬</div>
+  <h1>LINE ステップ配信ジェネレーター
+    <span>治療院・接骨院向け｜休眠掘り起こし専用</span>
+  </h1>
+</header>
+
+<div class="container">
+
+  <!-- STEP TABS -->
+  <div class="step-tabs">
+    <div class="step-tab active" onclick="showStep(0)">① 基本情報</div>
+    <div class="step-tab" onclick="showStep(1)">② テーマ設定</div>
+    <div class="step-tab" onclick="showStep(2)">③ オファー設定</div>
+    <div class="step-tab" onclick="showStep(3)">④ 動画・素材</div>
+  </div>
+
+  <!-- STEP 0: 基本情報 -->
+  <div class="step-content" id="step-0">
+    <div class="card">
+      <div class="card-title">🏥 院の基本情報 <span class="badge">必須</span></div>
+
+      <div class="field">
+        <label>院名<span class="required">*</span></label>
+        <input type="text" id="clinic_name" placeholder="例：〇〇接骨院">
+      </div>
+
+      <div class="field">
+        <label>院の種別<span class="required">*</span></label>
+        <select id="clinic_type">
+          <option value="接骨院">接骨院</option>
+          <option value="整骨院">整骨院</option>
+          <option value="整体院">整体院</option>
+          <option value="治療院">治療院</option>
+          <option value="鍼灸院">鍼灸院</option>
+          <option value="サロン">サロン</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>配信シーズン<span class="required">*</span><span class="hint">冒頭の季節感に使います</span></label>
+        <select id="season">
+          <option value="春">春（3〜5月）</option>
+          <option value="夏">夏（6〜8月）</option>
+          <option value="秋">秋（9〜11月）</option>
+          <option value="冬">冬（12〜2月）</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1: テーマ設定 -->
+  <div class="step-content" id="step-1" style="display:none">
+    <div class="card">
+      <div class="card-title">🎯 プログラムのテーマ <span class="badge">必須</span></div>
+
+      <div class="field">
+        <label>プログラム名<span class="required">*</span><span class="hint">LINEに表示される名称</span></label>
+        <input type="text" id="program_name" placeholder="例：自律神経調整プログラム、歩行指導プログラム">
+      </div>
+
+      <div class="field">
+        <label>メインの訴求テーマ<span class="required">*</span></label>
+        <select id="theme">
+          <option value="sleep">睡眠・自律神経</option>
+          <option value="walk">歩行・姿勢改善</option>
+          <option value="blood">血流・体質改善</option>
+          <option value="machine">治療機器（特定機器あり）</option>
+          <option value="diet">ダイエットメニュー</option>
+          <option value="pain">痛み・しびれの改善</option>
+        </select>
+      </div>
+
+      <div class="field" id="machine_field" style="display:none">
+        <label>機器名<span class="required">*</span></label>
+        <input type="text" id="machine_name" placeholder="例：マトリクスウェーブ">
+      </div>
+
+      <div class="field">
+        <label>ターゲット症状<span class="hint">当てはまる症状を入力（空欄はスキップ）</span></label>
+        <div class="symptoms-grid">
+          <div class="symptom-input"><span>✅</span><input type="text" class="symptom" placeholder="例：手足が冷えて寝つきが悪い"></div>
+          <div class="symptom-input"><span>✅</span><input type="text" class="symptom" placeholder="例：朝起きてもダルさが残る"></div>
+          <div class="symptom-input"><span>✅</span><input type="text" class="symptom" placeholder="例：睡眠の質が悪い"></div>
+          <div class="symptom-input"><span>✅</span><input type="text" class="symptom" placeholder="例：疲れが取れない"></div>
+          <div class="symptom-input"><span>✅</span><input type="text" class="symptom" placeholder="例：痛みやしびれがぶり返す"></div>
+          <div class="symptom-input"><span>✅</span><input type="text" class="symptom" placeholder="（任意追加）"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: オファー設定 -->
+  <div class="step-content" id="step-2" style="display:none">
+    <div class="card">
+      <div class="card-title">🎁 オファー内容 <span class="badge">必須</span></div>
+
+      <div class="field">
+        <label>体験メニュー名<span class="required">*</span></label>
+        <input type="text" id="offer_name" placeholder="例：自律神経調整プログラムの施術体験">
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>通常価格<span class="required">*</span></label>
+          <input type="text" id="regular_price" placeholder="例：5,500円">
+        </div>
+        <div class="field">
+          <label>体験価格<span class="required">*</span><span class="hint">無料の場合は「無料」と入力</span></label>
+          <input type="text" id="offer_price" placeholder="例：980円">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>返信キーワード<span class="required">*</span><span class="hint">お客様がLINEに送る言葉</span></label>
+        <input type="text" id="keyword" placeholder="例：睡眠、体験希望、チェック">
+      </div>
+
+      <div class="field">
+        <label>限定人数<span class="hint">デフォルト：7名</span></label>
+        <input type="text" id="limit_num" placeholder="7" value="7">
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: 動画・素材 -->
+  <div class="step-content" id="step-3" style="display:none">
+    <div class="card">
+      <div class="card-title">🎬 動画・素材情報 <span class="badge">任意</span></div>
+
+      <div class="field">
+        <label>施術紹介動画URL<span class="hint">1通目で使用</span></label>
+        <input type="text" id="intro_video" placeholder="https://youtu.be/...">
+      </div>
+
+      <div class="field">
+        <label>お客様インタビュー動画URL①<span class="hint">2通目で使用</span></label>
+        <input type="text" id="voice_video1" placeholder="https://youtu.be/...">
+      </div>
+
+      <div class="field">
+        <label>お客様インタビュー動画URL②<span class="hint">3通目で使用</span></label>
+        <input type="text" id="voice_video2" placeholder="https://youtu.be/...">
+      </div>
+
+      <div class="field">
+        <label>オファー動画URL<span class="hint">4通目で使用</span></label>
+        <input type="text" id="offer_video" placeholder="https://youtu.be/...">
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVIGATION -->
+  <div style="display:flex; gap:10px; margin-bottom:20px;">
+    <button class="btn-generate" id="btn-prev" onclick="prevStep()" style="display:none; background:#6b7280; flex:0 0 auto; width:auto; padding:16px 24px;">← 戻る</button>
+    <button class="btn-generate" id="btn-next" onclick="nextStep()">次へ →</button>
+    <button class="btn-generate" id="btn-gen" onclick="generate()" style="display:none;">✨ 配信文を生成する</button>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-section" id="output-section">
+    <div class="output-header">
+      <h2>📋 生成された配信文</h2>
+      <button class="btn-copy-all" onclick="copyAll()">全通コピー</button>
+    </div>
+    <div class="rule-banner">
+      <strong>⚠️ 配信ルール（3つの禁止事項）</strong>
+      ① 専門用語を使わない（難しい医療用語は平易な言葉に書き換えてください）<br>
+      ② 上から目線・高圧的な表現を使わない（「必ず」「絶対」などは避けてください）<br>
+      ③ 1通あたり最大400文字まで（超過している通は赤枠で表示されます）
+    </div>
+    <div id="messages-container"></div>
+  </div>
+
+</div>
+
+<script>
+  let currentStep = 0;
+  const totalSteps = 4;
+
+  document.getElementById('theme').addEventListener('change', function() {
+    document.getElementById('machine_field').style.display =
+      this.value === 'machine' ? 'block' : 'none';
+  });
+
+  function showStep(n) {
+    document.querySelectorAll('.step-content').forEach((el, i) => {
+      el.style.display = i === n ? 'block' : 'none';
+    });
+    document.querySelectorAll('.step-tab').forEach((el, i) => {
+      el.classList.toggle('active', i === n);
+    });
+    currentStep = n;
+    updateNav();
+  }
+
+  function updateNav() {
+    document.getElementById('btn-prev').style.display = currentStep > 0 ? 'flex' : 'none';
+    document.getElementById('btn-next').style.display = currentStep < totalSteps - 1 ? 'flex' : 'none';
+    document.getElementById('btn-gen').style.display = currentStep === totalSteps - 1 ? 'flex' : 'none';
+  }
+
+  function nextStep() {
+    if (currentStep < totalSteps - 1) showStep(currentStep + 1);
+  }
+
+  function prevStep() {
+    if (currentStep > 0) showStep(currentStep - 1);
+  }
+
+  function val(id) {
+    return (document.getElementById(id)?.value || '').trim();
+  }
+
+  function getSymptoms() {
+    return Array.from(document.querySelectorAll('.symptom'))
+      .map(el => el.value.trim())
+      .filter(Boolean)
+      .map(s => '✅ ' + s)
+      .join('\n');
+  }
+
+  function seasonText(season) {
+    const map = {
+      '春': '春は一年の中で最も自律神経が乱れやすい季節です。\n寒暖差も激しく、疲れが溜まりやすい時期でもあります。',
+      '夏': '夏は冷房や紫外線の影響で、自律神経が乱れやすい季節です。\n熱中症や夏バテで体力が低下しやすい時期でもあります。',
+      '秋': '秋は気温の変化が大きく、自律神経が乱れやすい季節です。\n夏の疲れが出やすく、体調を崩しやすい時期でもあります。',
+      '冬': '冬は寒さで血流が悪くなり、自律神経が乱れやすい季節です。\n乾燥や感染症のリスクも高まる時期でもあります。',
+    };
+    return map[season] || '';
+  }
+
+  function generate() {
+    const clinic = val('clinic_name') || '当院';
+    const clinicType = val('clinic_type');
+    const season = val('season');
+    const program = val('program_name') || '体質改善プログラム';
+    const offerName = val('offer_name') || '施術体験';
+    const regularPrice = val('regular_price') || '5,500円';
+    const offerPrice = val('offer_price') || '980円';
+    const keyword = val('keyword') || '体験希望';
+    const limitNum = val('limit_num') || '7';
+    const symptoms = getSymptoms() || '✅ 手足が冷えて寝つきが悪い\n✅ 朝起きてもダルさが残る\n✅ 疲れが取れない\n✅ 痛みやしびれがぶり返している';
+    const introVideo = val('intro_video') || '【施術紹介動画URLをここに入力】';
+    const voiceVideo1 = val('voice_video1') || '【お客様インタビュー動画URL①をここに入力】';
+    const voiceVideo2 = val('voice_video2') || '【お客様インタビュー動画URL②をここに入力】';
+    const offerVideo = val('offer_video') || '【オファー動画URLをここに入力】';
+    const machineName = val('machine_name');
+    const theme = val('theme');
+
+    const seasonDesc = seasonText(season);
+
+    const priceBlock = offerPrice === '無料'
+      ? `【${offerName}】を\n先着${limitNum}名様限定で\n無料プレゼントさせていただきます🎁`
+      : `【${offerName}】を\n先着${limitNum}名様限定で\n通常${regularPrice}のところ\n初回限定${offerPrice}でご提供致します！`;
+
+    const machineNote = theme === 'machine' && machineName
+      ? `\n\n${machineName}は\nプロのアスリートも活用している特別な治療機器です。`
+      : '';
+
+    // テーマ別のデフォルト症状・文言
+    const themeDefaults = {
+      sleep: {
+        pre_opening: '最近、眠れない・疲れが取れないと感じていませんか？',
+        symptoms: '✅ 手足が冷えて寝つきが悪い\n✅ 朝起きてもダルさが残る\n✅ 疲れが取れない\n✅ 痛みやしびれがぶり返している',
+        pre_concern: '体のバランスが乱れている可能性があります。',
+        msg1_body: `当院では、痛みやしびれの改善だけでなく\n再発しにくい体を作るための研究を重ねてきました。\n\nそして、ついに\n\n『${program}』が完成しました🙌${machineNote}`,
+        voice_before: '長年、眠れない・疲れが取れないと悩んでいた方が',
+        voice_results: '✅ 朝スッキリ起きられるようになった\n✅ 体が軽くなった\n✅ いろいろ試してもダメだったのに、ここでやっと変わった',
+        offer_benefits: '✅ グッスリ眠れて、朝スッキリ起きられる\n✅ 疲れが取れやすい体になる\n✅ 痛みやしびれが出にくくなる',
+        offer_future: '毎日ぐっすり眠れて、朝から元気に過ごせる未来',
+      },
+      walk: {
+        pre_opening: '最近、歩くのが億劫になっていませんか？',
+        symptoms: '✅ 歩くと腰や膝が痛くなる\n✅ 段差でつまずきやすくなった\n✅ 夕方になると足がパンパンになる\n✅ 足が重くて外出が億劫になってきた\n✅ 将来、寝たきりになるのが不安',
+        pre_concern: '歩き方や姿勢のクセが関係しているかもしれません。',
+        msg1_body: `実は、肩こり・腰痛・膝の痛みの多くは\n歩き方や立ち方のクセが原因です。\n\n「ストレッチや運動を続けられない…」\nそんな方でも大丈夫。\n\n当院では長年の経験をもとに\n\n『${program}』が完成しました✨`,
+        voice_before: '歩くのが怖くて外出を控えていた方が',
+        voice_results: '✅ 旅行で1日中歩けるようになった\n✅ 痛みを気にせず外出できるようになった\n✅ 体が軽くなって毎日が楽しくなった',
+        offer_benefits: '✅ 自分の歩き方のクセがわかる\n✅ 痛みなく歩けるようになる\n✅ 将来の寝たきりリスクを減らせる',
+        offer_future: '自分の足で好きな場所へ行ける未来',
+      },
+      blood: {
+        pre_opening: '最近、体の冷えやだるさが気になっていませんか？',
+        symptoms: '✅ 手足が冷えてなかなか温まらない\n✅ むくみが気になる\n✅ 疲れやすく朝がつらい\n✅ 痛みやしびれがぶり返している',
+        pre_concern: '血の巡りが悪くなっている可能性があります。',
+        msg1_body: `実は、体の外側だけを整えても\n血の巡りが悪い状態では\n痛みや不調が出やすいままのことがあります。\n\nそこで当院では\n\n『${program}』を導入しました🙌`,
+        voice_before: '冷えやむくみ、疲れやすさに長年悩んでいた方が',
+        voice_results: '✅ 冷えが改善されて体が楽になった\n✅ むくみが気にならなくなった\n✅ 朝スッキリ起きられるようになった',
+        offer_benefits: '✅ 冷えやむくみが改善される\n✅ 疲れが取れやすくなる\n✅ 痛みやしびれが出にくくなる',
+        offer_future: '体の内側から健康になれる未来',
+      },
+      machine: {
+        pre_opening: '最近、体の疲れやだるさが取れていませんか？',
+        symptoms: '✅ 手足が冷えて寝つきが悪い\n✅ 朝起きてもダルさが残る\n✅ 疲れが取れない\n✅ 痛みやしびれがぶり返している',
+        pre_concern: '体のバランスが乱れている可能性があります。',
+        msg1_body: `当院では、痛みやしびれの改善だけでなく\n再発しにくい体を作るための研究を重ねてきました。\n\nそして、ついに\n\n『${program}』が完成しました🙌${machineNote}`,
+        voice_before: '長年、体の不調に悩んでいた方が',
+        voice_results: '✅ 痛みやしびれが出にくくなった\n✅ 朝スッキリ起きられるようになった\n✅ いろいろ試してもダメだったのに、ここでやっと変わった',
+        offer_benefits: '✅ 痛みやしびれが出にくくなる\n✅ グッスリ眠れて、朝スッキリ起きられる\n✅ 再発を防ぐことができる',
+        offer_future: '好きな趣味を思いきり楽しめる未来',
+      },
+      diet: {
+        pre_opening: '最近、体型や体重が気になっていませんか？',
+        symptoms: '✅ 食事に気をつけているのに体重が落ちない\n✅ 運動しても効果を感じにくい\n✅ リバウンドを繰り返している\n✅ 体型が気になって外出が億劫になってきた',
+        pre_concern: '体の内側からアプローチが必要かもしれません。',
+        msg1_body: `「食事を我慢しているのに結果が出ない…」\n「運動を続けているのになかなか変わらない…」\n\nそんな方に知っていただきたい\n\n『${program}』が完成しました🙌`,
+        voice_before: '食事制限や運動を続けてもなかなか結果が出なかった方が',
+        voice_results: '✅ 無理な食事制限なく体型が変わった\n✅ リバウンドせずに体重をキープできた\n✅ 体が軽くなって動くのが楽しくなった',
+        offer_benefits: '✅ 無理なく理想の体型に近づける\n✅ リバウンドしにくい体になれる\n✅ 体が軽くなり毎日が快適になる',
+        offer_future: '好きな服を自信を持って着られる未来',
+      },
+      pain: {
+        pre_opening: '肩・腰・膝など、慢性的な痛みやしびれに悩んでいませんか？\n※該当する部位に書き換えてください',
+        symptoms: '✅ 痛みがぶり返して、いつまでも良くならない\n✅ 病院や整骨院に通っても変わらない\n✅ このまま動けなくなりそうで不安\n✅ 寝たきりにはなりたくない',
+        pre_concern: '痛みの根本的な原因がまだ改善できていない可能性があります。',
+        msg1_body: `「痛みが和らいでも、またすぐぶり返す…」\n「ずっとこの痛みと付き合っていくしかないのかな…」\n\nそんな不安を感じている方、いませんか？\n\n実は、痛みがぶり返す原因は\n痛い場所ではなく\n体の使い方や姿勢のクセにあることがほとんどです。\n\nそこで当院では\n\n『${program}』をご提供しております🙌`,
+        voice_before: '長年、痛みやしびれと付き合ってきた方が',
+        voice_results: '✅ 慢性的な痛みが改善された\n✅ 痛み止めやシップに頼らなくても済むようになった\n✅ 前よりも楽に動けるようになった',
+        offer_benefits: '✅ 慢性的な痛みやしびれが改善される\n✅ 再発しにくい体になれる\n✅ 薬に頼らない毎日に近づける',
+        offer_future: '痛みを気にせず、好きなことを楽しめる未来',
+      },
+    };
+
+    const td = themeDefaults[theme] || themeDefaults['sleep'];
+    const defaultSymptoms = td.symptoms;
+    const symptomsText = symptoms || defaultSymptoms;
+
+    const messages = [
+      {
+        title: '〈プレ送信〉共感・悩み喚起',
+        text: `${td.pre_opening}
+
+${seasonDesc}
+
+最近こんなことはありませんか？
+
+${symptomsText}
+
+どれか一つでも当てはまる方は
+${td.pre_concern}
+
+今後こちらのLINEでは
+${season}を快適に過ごすための
+健康情報をお届けしていきます😊
+
+ぜひ配信をチェックしてみてください🤲
+
+【今週のご予約空き状況をここに記載】`
+      },
+      {
+        title: '〈1通目〉プログラム告知・興味喚起',
+        text: `${td.msg1_body}
+
+${symptomsText}
+
+どれか一つでも当てはまる方に
+ぜひ知っていただきたいプログラムです。
+
+実際の様子を動画でご紹介していますので
+ぜひこちらをご覧ください⬇️
+
+${introVideo}`
+      },
+      {
+        title: '〈2通目〉お客様の声①',
+        text: `次はあなたの番です♪
+『${program}』を受けられた
+お客様のご感想をお届けします！
+
+先日の動画はご覧いただけましたか？
+
+${td.voice_before}
+
+${td.voice_results}
+
+という嬉しい変化を実感されています！
+
+インタビュー動画はこちら⬇️
+${voiceVideo1}
+
+こういったご感想が続々と届いています。
+あなたのお身体のことも、ぜひお気軽にご相談ください🤲`
+      },
+      {
+        title: '〈3通目〉お客様の声②',
+        text: `本日も『${program}』を受けられた
+お客様のご感想をお届けします✨
+
+施術を続けることで
+
+${td.voice_results}
+
+という変化を実感されています！
+
+インタビュー動画はこちら⬇️
+${voiceVideo2}
+
+次回の配信では、とっても有益な情報をお届けしますので
+ぜひチェックしてみてください😊`
+      },
+      {
+        title: '〈4通目〉オファー提示',
+        text: `3ヶ月後、あなたはどんな未来を選びますか？
+
+『${program}』を続けることで
+
+${td.offer_benefits}
+
+${td.offer_future}を
+一緒に実現しませんか？😊
+
+${priceBlock}
+
+ご希望の方はこちらのLINEに
+『${keyword}』とメッセージをお送りください。
+折り返しご案内いたします✨
+
+詳しくはこちらの動画もご覧ください⬇️
+${offerVideo}`
+      },
+      {
+        title: '〈5通目〉残席煽り',
+        text: `${limitNum}名様限定のご案内🎁
+残り先着3名様で終了となります💦
+
+一昨日の配信から、早速${parseInt(limitNum)-3}名様のご予約が入りました。
+
+今回の【${offerName}】に
+お申込みいただけるのは
+残り先着3名様となりました。
+
+${td.offer_benefits}
+
+このような未来を手に入れたい方に
+ぜひ受けていただきたいです。
+
+残りの枠が埋まる前に
+『${keyword}』とメッセージをお送りください🤲
+
+【オファー画像を添付してください】`
+      },
+      {
+        title: '〈6通目〉満員御礼・次回予告',
+        text: `満員御礼🎉
+
+【${offerName}】に
+お申込みいただいた皆さま
+ありがとうございました🙏
+
+限定${limitNum}名の枠がすべて満席になりました！
+
+「間に合わなかった…」というお声も届いており、
+次回の開催も検討中です！
+
+詳細が決まり次第
+こちらのLINEで優先的にご案内いたしますので
+どうぞお楽しみに！
+
+${clinic}で一緒に
+健康でイキイキとした毎日を
+手に入れていきましょう🙌`
+      }
+    ];
+
+    const container = document.getElementById('messages-container');
+    container.innerHTML = '';
+
+    messages.forEach((msg, i) => {
+      const filtered = applyFilters(msg.text);
+      const chars = countChars(filtered);
+      const isOver = chars > MAX_CHARS;
+
+      const block = document.createElement('div');
+      block.className = 'msg-block' + (isOver ? ' over-limit' : '');
+      block.innerHTML = `
+        <div class="msg-header">
+          <strong>${msg.title}<span class="char-count ${isOver ? 'over' : 'ok'}">${chars}文字${isOver ? ' ⚠️超過' : ' ✓'}</span></strong>
+          <button class="btn-copy" onclick="copyMsg(this, ${i})">コピー</button>
+        </div>
+        <div class="msg-body" id="msg-${i}">${escapeHtml(filtered)}</div>
+      `;
+      container.appendChild(block);
+    });
+
+    document.getElementById('output-section').classList.add('visible');
+    document.getElementById('output-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ===== ルール適用 =====
+
+  // 専門用語 → 平易な言葉に置換
+  const jargonMap = {
+    '自律神経失調': '体のバランスの乱れ',
+    '交感神経': '体を活動モードにする神経',
+    '副交感神経': '体をリラックスモードにする神経',
+    '毛細血管': '細い血管',
+    '顕微鏡': '専用の機器',
+    '炎症': '体の中で起きている腫れや痛み',
+    '筋肉の弛緩': '筋肉のこわばりをほぐすこと',
+    '施術': 'ケア',
+    '臨床': '実際の現場',
+    '予後': '回復の見通し',
+  };
+
+  // 高圧的表現 → 柔らかい表現に置換
+  const highPressureMap = {
+    '必ずチェックしてください': 'ぜひチェックしてみてください',
+    'LINE配信を必ず': 'LINE配信をぜひ',
+    '絶対に': 'ぜひ',
+    '今すぐ': 'お気軽に',
+    'しなければなりません': 'してみてください',
+    '見逃し厳禁': 'ぜひご確認ください',
+  };
+
+  function applyFilters(text) {
+    let result = text;
+    for (const [k, v] of Object.entries(jargonMap)) {
+      result = result.replaceAll(k, v);
+    }
+    for (const [k, v] of Object.entries(highPressureMap)) {
+      result = result.replaceAll(k, v);
+    }
+    return result;
+  }
+
+  const MAX_CHARS = 400;
+
+  function countChars(text) {
+    // URLを除いた文字数をカウント
+    const withoutUrl = text.replace(/https?:\/\/\S+/g, '');
+    return withoutUrl.replace(/\s/g, '').length;
+  }
+
+  function escapeHtml(text) {
+    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function copyMsg(btn, idx) {
+    const text = document.getElementById('msg-' + idx).innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'コピー済 ✓';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'コピー'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function copyAll() {
+    const all = Array.from(document.querySelectorAll('.msg-body'))
+      .map((el, i) => {
+        const headers = document.querySelectorAll('.msg-header strong');
+        return `【${headers[i].textContent}】\n\n${el.innerText}`;
+      }).join('\n\n' + '─'.repeat(30) + '\n\n');
+    navigator.clipboard.writeText(all).then(() => {
+      const btn = document.querySelector('.btn-copy-all');
+      btn.textContent = 'コピー済 ✓';
+      setTimeout(() => { btn.textContent = '全通コピー'; }, 2000);
+    });
+  }
+
+  updateNav();
+</script>
+</body>
+</html>
